@@ -318,7 +318,7 @@ const CHAVE_LOCAL = 'vegas_dashboard_url_appscript';
 const CORES_GRAFICO = ['#6B6F73', '#9A9FA3', '#4A4E52', '#B7BABD', '#7C8085', '#3A3D40'];
 
 // URL fixa do Apps Script (configurada só aqui no código, não aparece na tela)
-const URL_APPSCRIPT = 'https://script.google.com/macros/s/AKfycbxIBbdyktCtFTVhAl2MqR-ofaytGDELI7kjf66mXb-Sf5IOzjE8YOxQb6bf5V6zehRDzg/exec';
+const URL_APPSCRIPT = 'https://script.google.com/macros/s/AKfycbywurTgmHv9dMTLOkIPngnCUI2LsVCiUdNtHWIyZ4Mire99YgJg5KIrz2mtNQEYlfBwKg/exec';
 
 const elBtnAtualizar = document.getElementById('btnAtualizar');
 const elBtnPdf = document.getElementById('btnPdf');
@@ -353,6 +353,22 @@ async function carregarDados(url) {
   }
 }
 
+function formatarDataHora(valor) {
+  if (!valor) return '—';
+  // Se vier em formato ISO (ex: 2026-07-06T18:50:45.000Z), converte para o horário de Brasília
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(String(valor))) {
+    const data = new Date(valor);
+    if (!isNaN(data.getTime())) {
+      return new Intl.DateTimeFormat('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      }).format(data);
+    }
+  }
+  return valor;
+}
+
 function preencherDashboard(registros) {
   if (!Array.isArray(registros)) registros = [];
 
@@ -366,7 +382,7 @@ function preencherDashboard(registros) {
   document.getElementById('kpiAssinaturas').textContent = comAssinatura.length;
 
   const ultima = registros.length ? registros[registros.length - 1].dataHora : '—';
-  document.getElementById('kpiUltima').textContent = ultima || '—';
+  document.getElementById('kpiUltima').textContent = formatarDataHora(ultima);
 
   // Contagem por posto
   const contagemPorPosto = {};
@@ -448,7 +464,7 @@ function preencherDashboard(registros) {
         }
       }
       tr.innerHTML = `
-        <td>${r.dataHora || '—'}</td>
+        <td>${formatarDataHora(r.dataHora)}</td>
         <td>${r.nomeCompleto || '—'}</td>
         <td>${r.cpf || '—'}</td>
         <td>${r.posto || '—'}</td>
