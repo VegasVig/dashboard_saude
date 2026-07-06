@@ -170,6 +170,39 @@ tbody tr:nth-child(even){ background: var(--cinza-claro); }
 tbody td.assinatura-ok{ color:#3d7a5c; font-weight:600; }
 tbody td a{ color: var(--azul-escuro); text-decoration:underline; }
 
+.miniatura-assinatura{
+  height:34px;
+  max-width:90px;
+  object-fit:contain;
+  background:#fff;
+  border:1px solid var(--azul-claro);
+  border-radius:6px;
+  padding:2px;
+  cursor:pointer;
+  transition: transform var(--transicao);
+}
+.miniatura-assinatura:hover{ transform: scale(1.15); box-shadow: var(--sombra); }
+
+.modal-assinatura{
+  display:none;
+  position:fixed; inset:0;
+  background: rgba(58,61,64,.75);
+  z-index:999;
+  align-items:center;
+  justify-content:center;
+  padding:40px;
+  cursor:zoom-out;
+}
+.modal-assinatura.ativo{ display:flex; }
+.modal-assinatura img{
+  max-width:90vw;
+  max-height:85vh;
+  background:#fff;
+  border-radius:12px;
+  padding:20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.35);
+}
+
 footer.rodape-dashboard{
   display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
   margin-top:28px; padding-top:16px; border-top:1px solid var(--azul-claro);
@@ -284,9 +317,16 @@ footer.rodape-dashboard{
 
 </div>
 
+<div class="modal-assinatura sem-pdf" id="modalAssinatura" onclick="fecharAssinatura()">
+  <img id="imgAssinaturaGrande" src="" alt="Assinatura ampliada">
+</div>
+
 <script>
-const CHAVE_LOCAL = 'https://script.google.com/macros/s/AKfycbywurTgmHv9dMTLOkIPngnCUI2LsVCiUdNtHWIyZ4Mire99YgJg5KIrz2mtNQEYlfBwKg/exec';
+const CHAVE_LOCAL = 'vegas_dashboard_url_appscript';
 const CORES_GRAFICO = ['#6B6F73', '#9A9FA3', '#4A4E52', '#B7BABD', '#7C8085', '#3A3D40'];
+
+// URL fixa do Apps Script (já configurada — não precisa colar nada)
+const URL_APPSCRIPT_PADRAO = 'https://script.google.com/macros/s/AKfycbxIBbdyktCtFTVhAl2MqR-ofaytGDELI7kjf66mXb-Sf5IOzjE8YOxQb6bf5V6zehRDzg/exec';
 
 const elInputUrl = document.getElementById('inputUrl');
 const elStatus = document.getElementById('statusCarregamento');
@@ -294,12 +334,10 @@ const elBtnCarregar = document.getElementById('btnCarregar');
 const elBtnAtualizar = document.getElementById('btnAtualizar');
 const elBtnPdf = document.getElementById('btnPdf');
 
-// Recupera URL salva anteriormente no navegador
-const urlSalva = localStorage.getItem(CHAVE_LOCAL);
-if (urlSalva) {
-  elInputUrl.value = urlSalva;
-  carregarDados(urlSalva);
-}
+// Usa a URL salva no navegador (se o usuário já trocou por outra) ou a URL fixa padrão
+const urlSalva = localStorage.getItem(CHAVE_LOCAL) || URL_APPSCRIPT_PADRAO;
+elInputUrl.value = urlSalva;
+carregarDados(urlSalva);
 
 elBtnCarregar.addEventListener('click', () => {
   const url = elInputUrl.value.trim();
@@ -430,9 +468,13 @@ function preencherDashboard(registros) {
       const temAssinatura = r.assinatura && r.assinatura.trim() !== '';
       let celAssinatura = '—';
       if (temAssinatura) {
-        celAssinatura = r.assinatura.startsWith('http')
-          ? `<a href="${r.assinatura}" target="_blank" rel="noopener">Ver assinatura</a>`
-          : 'Coletada';
+        const src = r.assinatura.trim();
+        if (src.startsWith('data:image') || src.startsWith('http')) {
+          const srcEscapado = src.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+          celAssinatura = `<img src="${src}" alt="Assinatura" class="miniatura-assinatura" onclick="abrirAssinatura('${srcEscapado}')">`;
+        } else {
+          celAssinatura = 'Coletada';
+        }
       }
       tr.innerHTML = `
         <td>${r.dataHora || '—'}</td>
@@ -448,6 +490,14 @@ function preencherDashboard(registros) {
 
   document.getElementById('rodapeTexto').textContent =
     'Dashboard atualizado em ' + new Date().toLocaleString('pt-BR') + ' · ' + registros.length + ' registro(s)';
+}
+
+function abrirAssinatura(src) {
+  document.getElementById('imgAssinaturaGrande').src = src;
+  document.getElementById('modalAssinatura').classList.add('ativo');
+}
+function fecharAssinatura() {
+  document.getElementById('modalAssinatura').classList.remove('ativo');
 }
 
 function gerarPdf() {
